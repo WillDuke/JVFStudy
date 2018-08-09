@@ -18,7 +18,7 @@ allmol_complete$VF <- rep(c(1,0), 5)
 save(allmol_complete, file = "R_data/allmol_complete.rda")
 save(allmol_df, file = "R_data/allmol_withNAs.rda")
 
-
+##idmol
 idmol_NAs <- load("~/R_Files/Projects/Jak2VFMetabolomics/R_data/idmol_withNAs.rda")
 #add rownames
 rownames(kplasma) <- kplasma[,1]
