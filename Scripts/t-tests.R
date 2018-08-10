@@ -1,5 +1,5 @@
 #load dataset
-load("~/R_Files/Projects/Jak2VFMetabolomics/R_data/allmol_noNAs.rda")
+load("R_data/allmol_noNAs.rda")
 
 #subset to eicosanoids
 eico <- allmol_noNAs %>% dplyr::select(grep("A", colnames(allmol_noNAs))) 
