@@ -14,7 +14,7 @@ take.mann <- function(x){
     mw[["statistic"]][["W"]], mw[["conf.int"]]/10^5, 
     mw[["p.value"]])
 }
-
+wilcox <- wilcox.test(allmol_noNAs$A001,allmol_noNAs$A002)
 #apply to all columns
 mw.ps <- mapply(take.mann, eico)
 

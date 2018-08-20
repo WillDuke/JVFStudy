@@ -4,7 +4,7 @@ load("R_data/allmol_noNAs.rda")
 #subset to eicosanoids
 eico <- allmol_noNAs %>% dplyr::select(grep("A", colnames(allmol_noNAs))) 
 
-#construct function to take wilcox tests and calculate means
+#construct function to take t tests and calculate means
 take.t <- function(x){
     y <- x[c(1,3,5,7,9)]
     z <- x[c(2,4,6,8,10)]
@@ -34,13 +34,16 @@ rownames(list.mw) <- NULL
 #correct column order and arrange by p-value
 list.full <- list.full %>% 
   mutate(`WT Mean (x 10^5)` = round(`WT Mean`/10^5,2), 
-          `VF Mean (x 10^5)` = round(`VF Mean`/10^5,2),
-          `CI - Lower Bound (x 10^5)` = round(`CI - Lower Bound`/10^5, 2),
-          `CI - Upper Bound (x 10^5)` = round(`CI - Upper Bound`/10^5, 2),
+         `VF Mean (x 10^5)` = round(`VF Mean`/10^5,2),
+         `CI - Lower Bound (x 10^5)` = round(`CI - Lower Bound`/10^5, 2),
+         `CI - Upper Bound (x 10^5)` = round(`CI - Upper Bound`/10^5, 2),
          `P-value` = round(`P-value`, 4)) %>%
-  dplyr::select(IDs, `WT Mean (x 10^5)`, `VF Mean (x 10^5)`, 
-                `CI - Lower Bound (x 10^5)`,
-         `CI - Upper Bound (x 10^5)`, `P-value`) %>% 
+  dplyr::select(IDs,
+         `WT Mean (x 10^5)`,
+         `VF Mean (x 10^5)`, 
+         `CI - Lower Bound (x 10^5)`, 
+         `CI - Upper Bound (x 10^5)`, 
+         `P-value`) %>% 
   arrange(`P-value`)
 
 list.full %>% ggplot(aes(`P-value`)) + 
@@ -64,7 +67,7 @@ data.frame(p.lasma) %>% ggplot(aes(p.lasma)) + geom_histogram(binwidth = 0.04) +
   geom_vline(aes(xintercept = 0.01)) + xlab("P-values before correction")
 
 ###Table of top raw p-vals
-```{r, results = "asis"}
+
 p.lasma <- as.data.frame(p.lasma)
 p.lasma$Alphanumeric <- rownames(p.lasma)
 raw_pvals <- merge(lookup, p.lasma, by = "Alphanumeric")
@@ -72,18 +75,18 @@ raw_pvals <- raw_pvals %>% select(Alphanumeric, IDs, p.lasma) %>% arrange(p.lasm
 candidates_raw <- raw_pvals %>% filter(p.lasma < 0.01)
 candidates_raw
 write.csv(candidates_raw, "candidates_raw.csv")
-```
+
 
 
 ###Create histogram of adjusted p-values
-```{r, eval = FALSE}
+
 #create histogram of adjusted p-values
 data.frame(adj_pvals) %>% ggplot(aes(adj_pvals)) + geom_histogram(binwidth = 0.033) + 
   geom_vline(aes(xintercept = 0.15)) + xlab("P-values after FDR correction")
-```
+
 
 ###Create list of candidate molecules with p-values below cutoff
-```{r, eval = FALSE}
+
 #create list of candidate molecules by merging with lookup file
 adj_pvals <- as.data.frame(adj_pvals)
 
