@@ -52,8 +52,7 @@ list.full %>% ggplot(aes(`P-value`)) +
 write.csv(list.full, file = "Figures/TtestEicosanoids.csv")
 
 
-##### old code
-
+############old code####################
 #for all p-vals
 
 allpvals <- mapply(take.t, allmol_noNAs[,-1])
@@ -76,8 +75,6 @@ candidates_raw <- raw_pvals %>% filter(p.lasma < 0.01)
 candidates_raw
 write.csv(candidates_raw, "candidates_raw.csv")
 
-
-
 ###Create histogram of adjusted p-values
 
 #create histogram of adjusted p-values
@@ -96,4 +93,3 @@ mol_pvals <- mol_pvals %>% select(IDs, adj_pvals) %>% arrange(adj_pvals)
 candidates <- mol_pvals %>% filter(adj_pvals < 0.15)
 candidates
 write.csv(cand_df, "candidates.csv")
-```
