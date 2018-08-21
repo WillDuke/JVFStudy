@@ -1,7 +1,6 @@
 library(tidyverse)
-library(modelr)
 library(qvalue)
-require(gtools)
+library(ggrepel)
 load("R_data/allmol_noNAs.rda")
 
 #functions to take t-tests of each column and return pvals and t statistics
@@ -35,7 +34,7 @@ hist(pvals)
 #create null absolute t stat matrix
 B <- 200 #set replication number
 null_stats <- replicate(B, mapply(take.t, allmol_noNAs[,-1]))
-                  
+
 #create true absolute t stats
 obs_stats <- mapply(take.truet, allmol_noNAs[,-1])
 
@@ -71,7 +70,7 @@ siglist <- data.frame(Alphanumeric = colnames(allmol_noNAs[,-1]),
 siglist <- siglist %>% merge(lookup, by = "Alphanumeric")
 #create top 20 list with mzids and rounded values
 orglist <- siglist %>% 
-    mutate(`P.value` = round(`P.value`,5), 
+    mutate(`P.value` = round(`P.value`,8), 
            `Q.value` = round(`Q.value`,3), 
            LFDR = round(LFDR, 3), mz = round(mz,5), RT = round(RT,4)) %>% 
     unite(mzid, mz, RT, sep = "_") %>%
@@ -79,8 +78,10 @@ orglist <- siglist %>%
     arrange(`P.value`) %>%
     head(20)
 
+#need to fix lookup so that the Us are included!
+
 #write orglist to a csv for table production
-write.csv(orglist, file = "Tables/PA-FDR_Top20.csv")
+write.csv(orglist, file = "Tables/PA-FDR_Top20_withUs.csv")
 
 ##try the same with data subsetted to just eicosanoids
 eico <- allmol_noNAs %>% select_if(grepl("A", colnames(allmol_noNAs)))
@@ -89,6 +90,37 @@ eico.p <- mapply(take.pvals, eico)
 #PA-FDR will be unreliable
 hist(eico.p, nclass = 20)
 
+siglist %>% filter(Q.value < 0.05) %>% ggplot(aes(P.value, Q.value)) + geom_point()
 
+take.allt <- function(x){
+  y <- x[c(1,3,5,7,9)]
+  z <- x[c(2,4,6,8,10)]
+  t <- t.test(y, z, na.action=na.omit)
+  c(t[["estimate"]][["mean of x"]], 
+    t[["estimate"]][["mean of y"]],
+    t[["conf.int"]][1], 
+    t[["conf.int"]][2], t[[3]])
+}
+means <- mapply(take.allt, allmol_noNAs[,-1])
+
+means <- as.data.frame(t(means))
+colnames(means) = c("MeanWT", "MeanVF", "lower", "upper", "t")
+
+voldat <- siglist %>% 
+  cbind(means) %>% 
+  mutate(logP = -log10(P.value), logFC = log2(MeanVF/MeanWT)) %>% 
+  mutate(colors = ifelse(logFC > 2 | logFC < -2, "Black", "Blue"))
+
+voldat %>% ggplot(aes(logFC, logP, label = IDs)) + 
+  geom_point(aes(color = colors)) +
+  geom_hline(yintercept = -log10(0.0005), linetype = "dotted") +
+  theme(legend.position = "none") + xlab("Log2 Fold Change") +
+  ylab("log10 of P-value") + xlim(c(-4,4)) +
+  geom_text_repel(data = subset(voldat, 
+      logP > -log10(0.0005) & (logFC > 1 | logFC < -1)),
+      arrow = arrow(length = unit(0.03, "npc"), type = "closed", ends = "first"), 
+      segment.size = 0.1) +
+  ggtitle("Volcano Plot of Whole Dataset after PA-FDR") +
+      theme(plot.title = element_text(hjust = 0.5))
 
 

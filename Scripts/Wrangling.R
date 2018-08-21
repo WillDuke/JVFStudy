@@ -34,3 +34,7 @@ idmol_withNAs <- kplasma
 idmol_noNAforPCA <- kplasma_pc
 allmol_noNAs <- allmol_complete
 save(allmol_noNAs, file = "R_data/allmol_noNAs.rda")
+
+library(readxl)
+lookup <- read_xlsx("Raw_data/Plasma_data_lookup_key.xlsx")
+save(lookup, file = "R_data/lookup.rda")
