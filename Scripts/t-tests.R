@@ -1,6 +1,10 @@
+library(dplyr)
 #load dataset
+library(tidyverse)
+library(tidyr)
+library(ggalt)
 load("R_data/allmol_noNAs.rda")
-
+load("R_data/lookup.rda")
 #subset to eicosanoids
 eico <- allmol_noNAs %>% dplyr::select(grep("A", colnames(allmol_noNAs))) 
 
@@ -14,7 +18,6 @@ take.t <- function(x){
       t[["conf.int"]][1], 
       t[["conf.int"]][2], t[[3]])
 }
-tsample <- t.test(allmol_noNAs$A001[c(1,3,5,7,9)], allmol_noNAs$A001[c(2,4,6,8,10)])
 #apply to all columns
 ts.ps <- mapply(take.t, eico)
 
@@ -46,10 +49,49 @@ list.full <- list.full %>%
          `P-value`) %>% 
   arrange(`P-value`)
 
-list.full %>% ggplot(aes(`P-value`)) + 
-  geom_density()
 #write the csv
 write.csv(list.full, file = "Figures/TtestEicosanoids.csv")
+
+#Create graphs showing t-tests with errors:
+list.full <- list.full %>% 
+        mutate(`WT-VF`= `WT Mean (x 10^5)` - `VF Mean (x 10^5)`) %>% 
+        rename(Diff = `WT-VF`, 
+               lower = `CI - Lower Bound (x 10^5)`, 
+               upper = `CI - Upper Bound (x 10^5)`)
+list.full <- list.full %>% 
+  mutate(FC = (Diff)/`WT Mean (x 10^5)`, 
+         lowerFC = lower/`WT Mean (x 10^5)`, 
+         upperFC = upper/`WT Mean (x 10^5)`)
+
+#create factor for dumbell
+list.lowp <- list.full %>% 
+  filter(`P-value` < 0.1) %>% arrange(`P-value`)
+list.lowp$FactorID <- factor(list.lowp$IDs, levels=as.character(list.lowp$IDs))
+list.lowp$FactorID <- factor(list.lowp$FactorID, levels=rev(levels(list.lowp$FactorID)))
+
+#create dumbbell plot - save as high res tiff
+tiff("Figures/dumbbell_high_res_ttest.tiff", units="in", width=9, height=7, res=300)
+list.lowp %>% 
+  ggplot(aes(x = lowerFC, xend = upperFC, y = FactorID, group = IDs), fontface = "bold") + 
+  geom_dumbbell(aes(color = ifelse(FC < 0, "blue", "red"))) + 
+  xlim(-1.5, 2.4) +
+  geom_point(aes(FC, color = ifelse(FC < 0, "blue", "red"))) +
+  geom_vline(xintercept = 1.9) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Fold Change from WT", y = "", title = "Eicosanoids",
+       subtitle = "Molecules with P-value < 0.01 after T-test",
+       caption = "Significant hits from metabolomic analysis of murine blood plasma.") + 
+  theme(plot.title = element_text(hjust=0.5), 
+        plot.subtitle = element_text(hjust=0.5),
+        plot.caption = element_text(hjust = 0.5)) +
+  coord_cartesian(xlim=c(-1.6, 2.2)) +
+  scale_x_continuous(breaks=c(-1,0,1)) +
+  geom_rect(aes(xmin=1.9, xmax=2.4, ymin=-Inf, ymax=Inf), fill="white") + 
+  geom_text(aes(label=round(`P-value`,3), y=IDs, x=2.15), fontface = "bold",
+            color = "black")
+dev.off()
+
 
 
 ############old code####################
@@ -93,3 +135,5 @@ mol_pvals <- mol_pvals %>% select(IDs, adj_pvals) %>% arrange(adj_pvals)
 candidates <- mol_pvals %>% filter(adj_pvals < 0.15)
 candidates
 write.csv(cand_df, "candidates.csv")
+
+
