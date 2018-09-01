@@ -1,6 +1,7 @@
-library(tidyverse)
+library(ggalt)
 library(qvalue)
 library(ggrepel)
+library(dplyr)
 load("R_data/allmol_noNAs.rda")
 
 #functions to take t-tests of each column and return pvals and t statistics
@@ -65,7 +66,7 @@ qobj_fdrlevel <- qvalue(p = adj.pvals, pi0.method = "bootstrap", fdr.level = 0.0
 siglist <- data.frame(Alphanumeric = colnames(allmol_noNAs[,-1]),
                       `P-value` = qobj$pvalues, 
                       `Q-value` = qobj$qvalues, 
-                      LFDR = qobj$lfdr)
+                      LFDR = qobj$lfdr) 
 #merge with lookup 
 siglist <- siglist %>% merge(lookup, by = "Alphanumeric")
 #create top 20 list with mzids and rounded values
@@ -90,7 +91,7 @@ eico.p <- mapply(take.pvals, eico)
 #PA-FDR will be unreliable
 hist(eico.p, nclass = 20)
 
-siglist %>% filter(Q.value < 0.05) %>% ggplot(aes(P.value, Q.value)) + geom_point()
+siglist %>% filter(Q.value < 0.05, Alphanumeric == "^A") %>% ggplot(aes(P.value, Q.value)) + geom_point()
 
 take.allt <- function(x){
   y <- x[c(1,3,5,7,9)]
@@ -101,12 +102,12 @@ take.allt <- function(x){
     t[["conf.int"]][1], 
     t[["conf.int"]][2], t[[3]])
 }
-means <- mapply(take.allt, allmol_noNAs[,-1])
-
+means <- mapply(take.allt, eico[,c(-1, -114)])
 means <- as.data.frame(t(means))
 colnames(means) = c("MeanWT", "MeanVF", "lower", "upper", "t")
 
 voldat <- siglist %>% 
+  merge(lookup, by = "Alphanumeric") %>% 
   cbind(means) %>% 
   mutate(logP = -log10(P.value), logFC = log2(MeanVF/MeanWT)) %>% 
   mutate(colors = ifelse(logFC > 2 | logFC < -2, "Black", "Blue"))
@@ -121,6 +122,29 @@ voldat %>% ggplot(aes(logFC, logP, label = IDs)) +
       arrow = arrow(length = unit(0.03, "npc"), type = "closed", ends = "first"), 
       segment.size = 0.1) +
   ggtitle("Volcano Plot of Whole Dataset after PA-FDR") +
-      theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5))
 
-
+#for eico subset of **already adjusted** pvals
+voldat %>% ggplot(aes(logFC, logP, label = IDs)) + 
+  geom_point(color = "#00BFC4") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dotted") +
+  ylab("log10 of P-value") + xlim(c(-4,4)) +
+  annotate("text", label = "P-value < 0.5", x = 2.85, y = 1.35, size = 4, colour = "black") +
+  geom_text_repel(data = subset(voldat, 
+      logP > -log10(0.009) & (logFC > 0 | logFC < -.8)),
+      arrow = arrow(length = unit(0.02, "npc"), type = "closed", ends = "first"), 
+      segment.size = 0.2, force = 2, point.padding = 1, ylim = c(2.3, NA)) +
+  theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    theme(legend.position = "none") + xlab("Log2 Fold Change") +
+  ggtitle("Volcano Plot of Eicosanoids after PA-FDR")
+  
+ggsave(file = "Figures/Volcano Plot Eicosanoids After PA-FDR.tiff", units = "in", 
+       width = 9, height = 7, dpi = 300)
+#create dataframe from qobj object with relevant values
+siglist <- data.frame(Alphanumeric = colnames(allmol_noNAs[,-1]),
+                        `P-value` = qobj$pvalues, 
+                        `Q-value` = qobj$qvalues, 
+                        LFDR = qobj$lfdr)
+siglist <- siglist %>% filter(grepl("A", Alphanumeric))
+  

@@ -65,7 +65,7 @@ list.full <- list.full %>%
 
 #create factor for dumbell
 list.lowp <- list.full %>% 
-  filter(`P-value` < 0.1) %>% arrange(`P-value`)
+  filter(`P-value` < 0.05) %>% arrange(`P-value`)
 list.lowp$FactorID <- factor(list.lowp$IDs, levels=as.character(list.lowp$IDs))
 list.lowp$FactorID <- factor(list.lowp$FactorID, levels=rev(levels(list.lowp$FactorID)))
 
@@ -80,7 +80,7 @@ list.lowp %>%
   theme_bw() +
   theme(legend.position = "none") +
   labs(x = "Fold Change from WT", y = "", title = "Eicosanoids",
-       subtitle = "Molecules with P-value < 0.01 after T-test",
+       subtitle = "Molecules with P-value < 0.05 after T-test",
        caption = "Significant hits from metabolomic analysis of murine blood plasma.") + 
   theme(plot.title = element_text(hjust=0.5), 
         plot.subtitle = element_text(hjust=0.5),
@@ -88,7 +88,7 @@ list.lowp %>%
   coord_cartesian(xlim=c(-1.6, 2.2)) +
   scale_x_continuous(breaks=c(-1,0,1)) +
   geom_rect(aes(xmin=1.9, xmax=2.4, ymin=-Inf, ymax=Inf), fill="white") + 
-  geom_text(aes(label=round(`P-value`,3), y=IDs, x=2.15), fontface = "bold",
+  geom_text(aes(label=signif(`P-value`,3), y=IDs, x=2.15), fontface = "bold",
             color = "black")
 dev.off()
 

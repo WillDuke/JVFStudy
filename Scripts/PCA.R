@@ -25,12 +25,15 @@ autoplot(prcomp(allmol_noNAs[,c(-1, -2620)]),
          size = 2.3, 
          colour = 'Genotype', 
          shape = 'Sex')
-ggsave("Figures/PCA_of_allmols.png")
+ggsave("Figures/PCA_of_allmols.tiff", width = 9, height = 7, dpi = 300)
 
 #plot PCA on eicosanoids
 autoplot(prcomp(eico[,c(-1,-114)]), 
          data = eico, 
-         size = 2.3, 
+         size = 3, 
          colour = 'Genotype',
-         shape = 'Sex')
-ggsave("Figures/PCA_of_eicosanoids.png")
+         shape = 'Sex') + 
+  ggtitle("PCA of Eicosanoids") + 
+  theme_minimal() +
+  theme(plot.title = element_text(hjust=0.5))
+ggsave("Figures/PCA_of_eicosanoids.tiff", width = 9, height = 7, dpi = 300)
